@@ -39,30 +39,39 @@ Urutan ini menjaga dependency antar modul agar tidak saling bertabrakan:
 2. Membuat koneksi MySQL melalui `config::database::connect()`.
 3. Menyiapkan router Axum dan merge route auth dan user.
 4. Menyimpan koneksi DB di layer `Extension`.
-5. Membaca `APP_PORT` dari env (default `3001`).
+5. Membaca `APP_PORT` dari env (default `3001` jika tidak diset).
 6. Menjalankan server HTTP pada `127.0.0.1:<port>`.
 
 ## Komponen yang Sudah Disiapkan
 Daftar modul yang sudah tersedia:
 
 - **Schemas**
-	- `RegisterRequest` dengan validasi panjang nama, email, dan password.
-	- `LoginRequest` dengan validasi email dan password.
-	- `RegisterResponse` untuk response data user.
-	- `LoginResponse` berisi data user dan token.
+	- `register_schema.rs`
+		- `RegisterRequest` dengan validasi panjang nama (min 3 karakter), email, dan password (min 6 karakter).
+		- `RegisterResponse` untuk response data user (id, name, email, created_at, updated_at).
+	- `login_schema.rs`
+		- `LoginRequest` dengan validasi email dan password (min 6 karakter).
+		- `UserResponse` berisi data user (id, name, email).
+		- `LoginResponse` berisi data user dan token.
+	- `user_schema.rs`
+		- `UserStoreRequest` dengan validasi nama (min 3 karakter), email, dan password (min 6 karakter).
+		- `UserResponse` untuk response data user (id, name, email, created_at, updated_at).
 - **Middleware Auth**
 	- `auth` membaca token dari header `Authorization: Bearer <token>`.
 	- Menggunakan `verify_token()` dan menyimpan `claims` di `extensions`.
 - **Utils**
 	- `jwt` untuk `generate_token()` dan `verify_token()`.
-	- `response` untuk format `ApiResponse`.
+		- Token berlaku selama 24 jam.
+		- Menggunakan `JWT_SECRET` dari environment (default: "secret").
+	- `response` untuk format `ApiResponse` (status, message, data).
 - **Handlers**
-	- `register` untuk membuat user.
-	- `login` untuk autentikasi dan token.
-	- `index` untuk list user.
+	- `register` untuk membuat user baru (hash password dengan bcrypt).
+	- `login` untuk autentikasi dan generate JWT token.
+	- `index` untuk mengambil list semua user (descending by id).
 - **Routes**
-	- `/api/register` dan `/api/login` (public).
-	- `/api/users` (protected, butuh token).
+	- `/api/register` (POST, public).
+	- `/api/login` (POST, public).
+	- `/api/users` (GET, protected dengan auth middleware).
 
 ## Migrasi Database (SQLx)
 Migrasi untuk tabel `users` sudah dibuat dan dijalankan.
@@ -151,27 +160,117 @@ Berikut urutan kerja yang dilakukan dari awal proyek sampai kondisi sekarang:
 	- Tambah `src/routes/user_routes.rs` dan pasang middleware auth.
 
 ## Alur Register
-1. Client mengirim `POST /api/register`.
-2. Payload divalidasi (nama, email, password).
-3. Password di-hash dengan `bcrypt`.
-4. Data user disimpan ke tabel `users`.
-5. Ambil kembali data user dan kirim response `201 Created`.
-6. Jika email sudah ada, kirim `409 Conflict`.
+1. Client mengirim `POST /api/register` dengan body JSON:
+   ```json
+   {
+     "name": "John Doe",
+     "email": "john@example.com",
+     "password": "password123"
+   }
+   ```
+2. Payload divalidasi menggunakan `validator`:
+   - Nama minimal 3 karakter.
+   - Email harus format valid.
+   - Password minimal 6 karakter.
+3. Jika validasi gagal, kirim response `422 Unprocessable Entity` dengan detail error per field.
+4. Password di-hash dengan `bcrypt` (cost: 10).
+5. Data user disimpan ke tabel `users`.
+6. Ambil kembali data user berdasarkan `last_insert_id` dan kirim response `201 Created`.
+7. Jika email sudah ada (duplicate entry), kirim `409 Conflict`.
 
 ## Alur Login
-1. Client mengirim `POST /api/login`.
-2. Payload divalidasi (email, password).
-3. Ambil user berdasarkan email.
-4. Verifikasi password dengan `bcrypt`.
-5. Generate JWT (24 jam) dengan `JWT_SECRET`.
-6. Kirim response `200 OK` berisi data user dan token.
-7. Jika email/password salah, kirim `401 Unauthorized`.
+1. Client mengirim `POST /api/login` dengan body JSON:
+   ```json
+   {
+     "email": "john@example.com",
+     "password": "password123"
+   }
+   ```
+2. Payload divalidasi menggunakan `validator`:
+   - Email harus format valid.
+   - Password minimal 6 karakter.
+3. Jika validasi gagal, kirim response `422 Unprocessable Entity` dengan detail error per field.
+4. Ambil user berdasarkan email dari database.
+5. Jika user tidak ditemukan, kirim `401 Unauthorized`.
+6. Verifikasi password dengan `bcrypt::verify()` terhadap hash di database.
+7. Jika password tidak cocok, kirim `401 Unauthorized`.
+8. Generate JWT token (berlaku 24 jam) menggunakan `JWT_SECRET`.
+9. Kirim response `200 OK` berisi data user (id, name, email) dan token:
+   ```json
+   {
+     "status": true,
+     "message": "Login Berhasil",
+     "data": {
+       "user": {
+         "id": 1,
+         "name": "John Doe",
+         "email": "john@example.com"
+       },
+       "token": "eyJ0eXAiOiJKV1QiLCJhbGc..."
+     }
+   }
+   ```
 
 ## Alur List Users (Protected)
-1. Client mengirim `GET /api/users` dengan header `Authorization: Bearer <token>`.
-2. Middleware `auth` memverifikasi token dan menyimpan `claims` ke `extensions`.
-3. Handler mengambil semua data user dari database.
-4. Kirim response `200 OK` berisi daftar user.
+1. Client mengirim `GET /api/users` dengan header:
+   ```
+   Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGc...
+   ```
+2. Middleware `auth` memverifikasi token:
+   - Jika header tidak ada atau format salah, kirim `401 Unauthorized`.
+   - Jika token tidak valid atau expired, kirim `401 Unauthorized`.
+   - Jika token valid, ekstrak claims dan simpan ke `extensions`.
+3. Handler mengambil semua data user dari database (ORDER BY id DESC).
+4. Kirim response `200 OK` berisi array daftar user:
+   ```json
+   {
+     "status": true,
+     "message": "List user",
+     "data": [
+       {
+         "id": 2,
+         "name": "Jane Doe",
+         "email": "jane@example.com",
+         "created_at": "2026-02-21T10:30:00Z",
+         "updated_at": "2026-02-21T10:30:00Z"
+       },
+       {
+         "id": 1,
+         "name": "John Doe",
+         "email": "john@example.com",
+         "created_at": "2026-02-21T10:00:00Z",
+         "updated_at": "2026-02-21T10:00:00Z"
+       }
+     ]
+   }
+   ```
+
+## Format Response Error Validasi
+Ketika validasi gagal (status 422), response akan berisi detail error per field:
+```json
+{
+  "status": false,
+  "message": "Validasi Gagal",
+  "data": {
+    "name": ["Nama minimal 3 karakter"],
+    "email": ["Email tidak valid"],
+    "password": ["Password minimal 6 karakter"]
+  }
+}
+```
+
+## Format Response Error Umum
+Untuk error lainnya (401, 409, 500), response menggunakan format:
+```json
+{
+  "status": false,
+  "message": "Pesan error",
+  "data": null
+}
+```
 
 ## Catatan Environment
-- `JWT_SECRET` dipakai untuk sign/verify JWT. Jika tidak diset, default ke `secret`.
+- `APP_PORT`: Port server (default: `3001`).
+- `DATABASE_URL`: Connection string MySQL.
+- `JWT_SECRET`: Secret key untuk sign/verify JWT. Jika tidak diset, default ke `"secret"`.
+  - **PENTING**: Ganti dengan secret yang kuat pada production.

@@ -22,16 +22,26 @@ backend-api-jwt/
 		config/
 			mod.rs
 			database.rs
+		handlers/
+			mod.rs
+			register_handler.rs
+			login_handler.rs
+			user_handler.rs
 		middlewares/
 			mod.rs
 			auth_middleware.rs
 		models/
 			mod.rs
 			user.rs
+		routes/
+			mod.rs
+			auth_routes.rs
+			user_routes.rs
 		schemas/
 			mod.rs
 			register_schema.rs
 			login_schema.rs
+			user_schema.rs
 		utils/
 			mod.rs
 			jwt.rs
@@ -46,7 +56,7 @@ backend-api-jwt/
 Buat file `.env` di root proyek:
 
 ```
-APP_PORT=3000
+APP_PORT=3001
 DATABASE_URL=mysql://root:@localhost:3306/db_backend_api_jwt
 JWT_SECRET=ubah_ke_secret_kamu
 ```
@@ -66,7 +76,7 @@ cargo watch -q -c -w src/ -x run
 Output awal yang diharapkan:
 ```
 Database Connected Successfully!
-Server running on http://127.0.0.1:3000
+Server running on http://127.0.0.1:3001
 ```
 
 ## Alur dan Detail Teknis
@@ -97,7 +107,7 @@ Middleware auth sudah dipasang pada route user.
 
 Contoh request list user:
 ```
-curl -H "Authorization: Bearer <token>" http://127.0.0.1:3000/api/users
+curl -H "Authorization: Bearer <token>" http://127.0.0.1:3001/api/users
 ```
 
 
