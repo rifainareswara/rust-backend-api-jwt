@@ -7,7 +7,8 @@ use axum::{
 // import handler user
 use crate::handlers::user_handler::{
     index,
-    store
+    store,
+    show
 };
 
 // import middleware auth
@@ -20,6 +21,9 @@ pub fn user_routes() -> Router {
 
         // POST /api/users → tambah user
         .route("/api/users", post(store))
+
+        // GET /api/users/{id} → detail user
+        .route("/api/users/{id}", get(show))
         
         // Semua route di atas WAJIB login
         .layer(middleware::from_fn(auth))

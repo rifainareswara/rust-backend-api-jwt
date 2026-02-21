@@ -17,6 +17,7 @@ Dokumentasi ini merapikan alur proyek dari awal sampai saat ini. Server sudah me
 backend-api-jwt/
 	Cargo.toml
 	README.md
+	.env.example
 	src/
 		main.rs
 		config/
@@ -53,13 +54,23 @@ backend-api-jwt/
 ```
 
 ## Konfigurasi Environment
-Buat file `.env` di root proyek:
+Salin file `.env.example` menjadi `.env` di root proyek:
+
+```bash
+cp .env.example .env
+```
+
+Kemudian sesuaikan nilai-nilai di file `.env`:
 
 ```
 APP_PORT=3001
-DATABASE_URL=mysql://root:@localhost:3306/db_backend_api_jwt
-JWT_SECRET=ubah_ke_secret_kamu
+DATABASE_URL=mysql://username:password@localhost:3306/db_backend_api_jwt
+JWT_SECRET=your_jwt_secret_key_here_change_this_in_production
 ```
+
+**Catatan:**
+- Ganti `username` dan `password` dengan kredensial MySQL Anda.
+- Ganti `JWT_SECRET` dengan secret key yang kuat untuk production.
 
 ## Menjalankan Aplikasi
 ### Mode normal

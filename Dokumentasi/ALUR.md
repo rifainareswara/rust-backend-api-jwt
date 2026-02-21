@@ -11,7 +11,8 @@ Urutan ini menjaga dependency antar modul agar tidak saling bertabrakan:
 2. **Pasang dependency utama**
 	- `axum`, `tokio`, `serde`, `serde_json`, `sqlx`, `dotenvy`, `bcrypt`, `jsonwebtoken`, `chrono`, `tower-http`, `validator`.
 3. **Siapkan environment**
-	- Buat `.env` dan isi `APP_PORT`, `DATABASE_URL`, `JWT_SECRET`.
+	- Salin `.env.example` menjadi `.env`.
+	- Sesuaikan nilai `APP_PORT`, `DATABASE_URL`, `JWT_SECRET` di file `.env`.
 4. **Konfigurasi database**
 	- Buat `src/config/database.rs` dan `src/config/mod.rs`.
 5. **Server dasar**
@@ -141,7 +142,8 @@ Berikut urutan kerja yang dilakukan dari awal proyek sampai kondisi sekarang:
 12. **Validasi request**
 	- `cargo add validator --features derive`
 13. **Konfigurasi environment**
-	- Buat `.env` dan isi `APP_PORT`, `DATABASE_URL`, `JWT_SECRET`.
+	- Salin `.env.example` menjadi `.env`.
+	- Sesuaikan nilai `APP_PORT`, `DATABASE_URL`, `JWT_SECRET` di file `.env`.
 14. **Setup koneksi database**
 	- Buat `src/config/database.rs` dan `src/config/mod.rs`.
 15. **Router dan server dasar**

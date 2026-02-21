@@ -2,6 +2,7 @@ use axum::{
     Extension,
     Json,
     http::StatusCode,
+    extract::Path
 };
 use sqlx::MySqlPool;
 use bcrypt::hash;
@@ -181,4 +182,61 @@ pub async fn store(
             }
         }
     }
+}
+
+pub async fn show(
+    Path(id): Path<i64>,
+    Extension(db): Extension<MySqlPool>,
+) -> (StatusCode, Json<ApiResponse<Value>>) {
+
+    // Ambil data user berdasarkan ID
+    let user = match sqlx::query!(
+        r#"
+        SELECT id, name, email, created_at, updated_at
+        FROM users
+        WHERE id = ?
+        "#,
+        id
+    )
+    .fetch_one(&db)
+    .await
+    {
+        Ok(user) => user,
+        Err(sqlx::Error::RowNotFound) => {
+            return (
+                // kirim response 404 Not Found
+                StatusCode::NOT_FOUND,
+                Json(ApiResponse::error(
+                    "User tidak ditemukan",
+                )),
+            );
+        }
+        Err(e) => {
+            eprintln!("Database error: {}", e);
+            return (
+                // kirim response 500 Internal Server Error
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ApiResponse::error(
+                    "Gagal mengambil data user",
+                )),
+            );
+        }
+    };
+
+    let response = UserResponse {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        created_at: user.created_at,
+        updated_at: user.updated_at,
+    };
+
+    (
+        // kirim response 200 OK
+        StatusCode::OK,
+        Json(ApiResponse::success(
+            "Detail user",
+            json!(response),
+        )),
+    )
 }
