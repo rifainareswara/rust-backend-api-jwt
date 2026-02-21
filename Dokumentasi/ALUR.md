@@ -2,6 +2,22 @@
 
 Dokumen ini menyimpan detail teknis agar README tetap ringkas.
 
+## Daftar Isi
+- [Urutan Pengerjaan yang Disarankan](#urutan-pengerjaan-yang-disarankan)
+- [Alur Aplikasi Saat Ini](#alur-aplikasi-saat-ini)
+- [Komponen yang Sudah Disiapkan](#komponen-yang-sudah-disiapkan)
+- [Migrasi Database (SQLx)](#migrasi-database-sqlx)
+- [Model User](#model-user)
+- [Alur Pengerjaan Dari Awal Sampai Saat Ini](#alur-pengerjaan-dari-awal-sampai-saat-ini)
+- [Alur Register](#alur-register)
+- [Alur Login](#alur-login)
+- [Alur List Users (Protected)](#alur-list-users-protected)
+- [Alur Tambah User (Protected)](#alur-tambah-user-protected)
+- [Format Response](#format-response-error-validasi)
+- [Catatan Environment](#catatan-environment)
+- [Best Practices](#best-practices)
+- [Pengembangan Lebih Lanjut](#pengembangan-lebih-lanjut)
+
 ## Urutan Pengerjaan yang Disarankan
 Urutan ini menjaga dependency antar modul agar tidak saling bertabrakan:
 
@@ -328,3 +344,81 @@ Untuk error lainnya (401, 409, 500), response menggunakan format:
 - `DATABASE_URL`: Connection string MySQL.
 - `JWT_SECRET`: Secret key untuk sign/verify JWT. Jika tidak diset, default ke `"secret"`.
   - **PENTING**: Ganti dengan secret yang kuat pada production.
+
+## File .gitignore
+File yang diabaikan oleh git:
+```
+/target        # Binary dan build artifacts dari Cargo
+.env           # Environment variables (berisi kredensial)
+```
+
+**Catatan Keamanan:**
+- File `.env` tidak boleh di-commit ke repository karena berisi informasi sensitif.
+- Gunakan `.env.example` sebagai template untuk sharing ke tim.
+- Setiap developer harus membuat `.env` sendiri dengan kredensial mereka.
+
+## Best Practices
+
+### Keamanan
+1. **JWT Secret**: Gunakan string random minimal 32 karakter untuk production.
+   ```bash
+   # Generate JWT secret dengan openssl
+   openssl rand -hex 32
+   ```
+
+2. **Password**: Selalu hash password sebelum disimpan ke database (sudah diimplementasi dengan bcrypt cost 10).
+
+3. **HTTPS**: Pada production, selalu gunakan HTTPS untuk melindungi token di transit.
+
+4. **Token Expiration**: Token di-set 24 jam. Sesuaikan dengan kebutuhan:
+   - Aplikasi sensitif: 15 menit - 1 jam
+   - Aplikasi umum: 24 jam - 7 hari
+
+### Development
+1. **Environment Variables**: Jangan hardcode kredensial di source code.
+
+2. **Database Migrations**: Selalu gunakan migration untuk perubahan schema database.
+   ```bash
+   # Buat migration baru
+   sqlx migrate add nama_migration
+   
+   # Jalankan migration
+   sqlx migrate run
+   
+   # Rollback migration (jika diperlukan)
+   sqlx migrate revert
+   ```
+
+3. **Error Handling**: Jangan expose stack trace atau detail error database ke client pada production.
+
+4. **Logging**: Untuk production, tambahkan logging middleware untuk monitoring.
+
+### Code Organization
+Struktur yang sudah diterapkan:
+- `config/` - Konfigurasi aplikasi (database, dll)
+- `handlers/` - Business logic untuk setiap endpoint
+- `middlewares/` - Middleware seperti auth, logging, dll
+- `models/` - Database models
+- `routes/` - Route definitions
+- `schemas/` - Request/Response validation schemas
+- `utils/` - Helper functions (JWT, response format, dll)
+
+Keuntungan struktur ini:
+- **Separation of Concerns**: Setiap komponen punya tanggung jawab yang jelas.
+- **Maintainability**: Mudah untuk menemukan dan mengubah kode.
+- **Scalability**: Mudah untuk menambah fitur baru.
+- **Testability**: Setiap komponen dapat di-test secara terpisah.
+
+## Pengembangan Lebih Lanjut
+
+Fitur yang bisa ditambahkan:
+1. **Email Verification**: Verifikasi email saat registrasi.
+2. **Password Reset**: Forgot password flow.
+3. **Refresh Token**: Implementasi refresh token untuk keamanan lebih baik.
+4. **Role-Based Access Control (RBAC)**: Admin, user, dll.
+5. **Rate Limiting**: Batasi jumlah request per IP.
+6. **Logging**: Structured logging dengan library seperti `tracing`.
+7. **API Documentation**: Auto-generate dengan `utoipa` (OpenAPI/Swagger).
+8. **Testing**: Unit tests dan integration tests.
+9. **Docker**: Containerize aplikasi.
+10. **CI/CD**: Setup GitHub Actions untuk automated testing dan deployment.

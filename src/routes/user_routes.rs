@@ -1,6 +1,6 @@
 use axum::{
     Router,
-    routing::{get, post},
+    routing::{get, post, put},
     middleware,
 };
 
@@ -8,7 +8,8 @@ use axum::{
 use crate::handlers::user_handler::{
     index,
     store,
-    show
+    show,
+    update
 };
 
 // import middleware auth
@@ -24,6 +25,9 @@ pub fn user_routes() -> Router {
 
         // GET /api/users/{id} → detail user
         .route("/api/users/{id}", get(show))
+
+        // PUT /api/users/{id} → update user
+        .route("/api/users/{id}", put(update))
         
         // Semua route di atas WAJIB login
         .layer(middleware::from_fn(auth))

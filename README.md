@@ -1,16 +1,88 @@
 # Backend API JWT (Rust + Axum)
 
-Dokumentasi ini merapikan alur proyek dari awal sampai saat ini. Server sudah memiliki route auth dasar (register/login) dan list user (protected), dan struktur, koneksi database, serta dependency siap untuk JWT, validasi, dan middleware.
+![Rust](https://img.shields.io/badge/rust-%23000000.svg?style=for-the-badge&logo=rust&logoColor=white)
+![MySQL](https://img.shields.io/badge/mysql-%2300f.svg?style=for-the-badge&logo=mysql&logoColor=white)
+
+Backend API dengan autentikasi JWT menggunakan Rust, Axum web framework, dan MySQL database.
+
+## Daftar Isi
+- [Tujuan](#tujuan)
+- [Fitur](#fitur)
+- [Prasyarat](#prasyarat)
+- [Quick Start](#quick-start)
+- [Struktur Proyek](#struktur-proyek)
+- [Konfigurasi Environment](#konfigurasi-environment)
+- [Setup Database](#setup-database)
+- [Menjalankan Aplikasi](#menjalankan-aplikasi)
+- [Dependensi Utama](#dependensi-utama)
+- [Catatan Endpoint](#catatan-endpoint)
+- [Troubleshooting](#troubleshooting)
+- [Lisensi](#lisensi)
+- [Kontribusi](#kontribusi)
 
 ## Tujuan
 - Menyediakan backend API dengan autentikasi JWT.
 - Terhubung ke MySQL via `sqlx`.
 - Siap untuk validasi request, hashing password, dan CORS.
 
+## Fitur
+✅ Autentikasi JWT (JSON Web Token)  
+✅ Password hashing dengan bcrypt  
+✅ Validasi request dengan validator  
+✅ Database MySQL dengan SQLx (compile-time checked)  
+✅ Protected routes dengan middleware  
+✅ Error handling yang comprehensive  
+✅ Response format API yang konsisten  
+✅ Environment configuration dengan dotenv  
+✅ Migration system untuk database  
+✅ CORS support (ready untuk frontend)  
+
 ## Prasyarat
-- Rust toolchain (stable)
-- Cargo
-- MySQL (jika akan konek DB)
+- Rust toolchain (stable) - [Install Rust](https://rustup.rs/)
+- Cargo (sudah termasuk dengan Rust)
+- MySQL Server 5.7+ atau 8.0+
+- SQLx CLI untuk menjalankan migrasi database
+
+## Quick Start
+
+1. **Clone repository**
+   ```bash
+   git clone https://github.com/rifainareswara/rust-backend-api-jwt.git
+   cd rust-backend-api-jwt
+   ```
+
+2. **Setup environment**
+   ```bash
+   cp .env.example .env
+   # Edit .env dan sesuaikan dengan konfigurasi Anda
+   ```
+
+3. **Install SQLx CLI**
+   ```bash
+   cargo install sqlx-cli --no-default-features --features mysql
+   ```
+
+4. **Setup database**
+   ```bash
+   # Buat database (pastikan MySQL sudah running)
+   sqlx database create
+   
+   # Jalankan migrasi
+   sqlx migrate run
+   ```
+
+5. **Jalankan aplikasi**
+   ```bash
+   cargo run
+   ```
+
+6. **Test endpoint**
+   ```bash
+   # Register user baru
+   curl -X POST http://127.0.0.1:3001/api/register \
+     -H "Content-Type: application/json" \
+     -d '{"name":"Test User","email":"test@example.com","password":"password123"}'
+   ```
 
 ## Struktur Proyek
 ```
@@ -72,6 +144,37 @@ JWT_SECRET=your_jwt_secret_key_here_change_this_in_production
 - Ganti `username` dan `password` dengan kredensial MySQL Anda.
 - Ganti `JWT_SECRET` dengan secret key yang kuat untuk production.
 
+## Setup Database
+
+### 1. Install SQLx CLI
+```bash
+cargo install sqlx-cli --no-default-features --features mysql
+```
+
+### 2. Buat Database
+```bash
+# Buat database MySQL
+mysql -u root -p -e "CREATE DATABASE db_backend_api_jwt;"
+```
+
+Atau gunakan SQLx CLI:
+```bash
+sqlx database create
+```
+
+### 3. Jalankan Migrasi
+```bash
+sqlx migrate run
+```
+
+Perintah ini akan membuat tabel `users` dengan struktur:
+- `id` (BIGINT, auto increment, primary key)
+- `name` (VARCHAR(100))
+- `email` (VARCHAR(100), unique)
+- `password` (TEXT)
+- `created_at` (TIMESTAMP, default current timestamp)
+- `updated_at` (TIMESTAMP, auto update)
+
 ## Menjalankan Aplikasi
 ### Mode normal
 ```
@@ -129,6 +232,21 @@ curl -X POST http://127.0.0.1:3001/api/register \
   -d '{"name":"John Doe","email":"john@example.com","password":"password123"}'
 ```
 
+Response:
+```json
+{
+  "status": true,
+  "message": "Register Berhasil",
+  "data": {
+    "id": 1,
+    "name": "John Doe",
+    "email": "john@example.com",
+    "created_at": "2026-02-21T10:00:00Z",
+    "updated_at": "2026-02-21T10:00:00Z"
+  }
+}
+```
+
 **Login (Public)**
 ```bash
 curl -X POST http://127.0.0.1:3001/api/login \
@@ -136,9 +254,42 @@ curl -X POST http://127.0.0.1:3001/api/login \
   -d '{"email":"john@example.com","password":"password123"}'
 ```
 
+Response:
+```json
+{
+  "status": true,
+  "message": "Login Berhasil",
+  "data": {
+    "user": {
+      "id": 1,
+      "name": "John Doe",
+      "email": "john@example.com"
+    },
+    "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+  }
+}
+```
+
 **List Users (Protected)**
 ```bash
 curl -H "Authorization: Bearer <token>" http://127.0.0.1:3001/api/users
+```
+
+Response:
+```json
+{
+  "status": true,
+  "message": "List user",
+  "data": [
+    {
+      "id": 1,
+      "name": "John Doe",
+      "email": "john@example.com",
+      "created_at": "2026-02-21T10:00:00Z",
+      "updated_at": "2026-02-21T10:00:00Z"
+    }
+  ]
+}
 ```
 
 **Create User (Protected)**
@@ -149,4 +300,94 @@ curl -X POST http://127.0.0.1:3001/api/users \
   -d '{"name":"Jane Doe","email":"jane@example.com","password":"password123"}'
 ```
 
+Response:
+```json
+{
+  "status": true,
+  "message": "User berhasil ditambahkan",
+  "data": {
+    "id": 2,
+    "name": "Jane Doe",
+    "email": "jane@example.com",
+    "created_at": "2026-02-21T11:00:00Z",
+    "updated_at": "2026-02-21T11:00:00Z"
+  }
+}
+```
 
+## Troubleshooting
+
+### Error: "Database connection failed"
+**Penyebab:** MySQL server tidak running atau kredensial di `.env` salah.
+
+**Solusi:**
+```bash
+# Cek status MySQL
+# macOS (Homebrew)
+brew services list | grep mysql
+
+# Atau restart MySQL
+brew services restart mysql
+
+# Linux (systemd)
+sudo systemctl status mysql
+sudo systemctl start mysql
+```
+
+Pastikan `DATABASE_URL` di `.env` sesuai dengan kredensial MySQL Anda.
+
+### Error: "sqlx migrate run" gagal
+**Penyebab:** Database belum dibuat atau SQLx CLI belum terinstall.
+
+**Solusi:**
+```bash
+# Install SQLx CLI jika belum
+cargo install sqlx-cli --no-default-features --features mysql
+
+# Buat database terlebih dahulu
+sqlx database create
+
+# Kemudian jalankan migrasi
+sqlx migrate run
+```
+
+### Error: "Port already in use"
+**Penyebab:** Port 3001 sudah digunakan oleh aplikasi lain.
+
+**Solusi:**
+Edit file `.env` dan ubah `APP_PORT` ke port lain:
+```
+APP_PORT=3002
+```
+
+### Error: Compile error terkait sqlx
+**Penyebab:** SQLx memerlukan database untuk compile-time verification.
+
+**Solusi:**
+```bash
+# Jalankan database terlebih dahulu
+# Kemudian compile ulang
+cargo clean
+cargo build
+```
+
+Atau disable compile-time checking dengan menambahkan di `Cargo.toml`:
+```toml
+[dependencies]
+sqlx = { version = "0.8.6", features = ["mysql", "runtime-tokio", "macros", "chrono"], default-features = false }
+```
+
+### Token tidak valid / expired
+**Penyebab:** Token JWT sudah expired (lebih dari 24 jam) atau JWT_SECRET berbeda.
+
+**Solusi:**
+- Login ulang untuk mendapatkan token baru
+- Pastikan `JWT_SECRET` di `.env` konsisten dan tidak berubah
+
+## Lisensi
+
+MIT License - silakan gunakan untuk keperluan belajar dan development.
+
+## Kontribusi
+
+Pull requests are welcome! Untuk perubahan besar, silakan buka issue terlebih dahulu untuk diskusi.

@@ -19,6 +19,7 @@ use crate::utils::response::ApiResponse;
 // import schema request dan response user
 use crate::schemas::user_schema::{
     UserStoreRequest,
+    UserUpdateRequest,
     UserResponse,
 };
 
@@ -240,3 +241,186 @@ pub async fn show(
         )),
     )
 }
+
+pub async fn update(
+    Path(id): Path<i64>,
+    Extension(db): Extension<MySqlPool>,
+    Json(payload): Json<UserUpdateRequest>,
+) -> (StatusCode, Json<ApiResponse<Value>>) {
+
+    // Validasi dasar (name & email)
+    if let Err(errors) = payload.validate() {
+        let mut field_errors: HashMap<String, Vec<String>> = HashMap::new();
+
+        // kumpulkan semua error dari validasi
+        for (field, errors) in errors.field_errors() {
+            let messages = errors
+                .iter()
+                .filter_map(|e| e.message.as_ref())
+                .map(|m| m.to_string())
+                .collect::<Vec<String>>();
+
+            field_errors.insert(field.to_string(), messages);
+        }
+
+        return (
+
+            // kirim response 422 Unprocessable Entity
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Json(ApiResponse {
+                status: false,
+                message: "Validasi Gagal".to_string(),
+                data: Some(json!(field_errors)),
+            }),
+        );
+    }
+
+    // Validasi password opsional
+    if let Some(password) = &payload.password {
+        if !password.is_empty() && password.len() < 6 {
+            let mut errors = HashMap::new();
+            errors.insert(
+                "password".to_string(),
+                vec!["Password minimal 6 karakter".to_string()],
+            );
+
+            return (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                Json(ApiResponse {
+                    status: false,
+                    message: "Validasi Gagal".to_string(),
+                    data: Some(json!(errors)),
+                }),
+            );
+        }
+    }
+
+    // Cek user exist
+    let user_exist = match sqlx::query!(
+        "SELECT id FROM users WHERE id = ?",
+        id
+    )
+    .fetch_one(&db)
+    .await
+    {
+        Ok(user) => user,
+        Err(sqlx::Error::RowNotFound) => {
+            return (
+                StatusCode::NOT_FOUND,
+                Json(ApiResponse::error(
+                    "User tidak ditemukan",
+                )),
+            );
+        }
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ApiResponse::error(
+                    "Terjadi kesalahan sistem",
+                )),
+            );
+        }
+    };
+
+    // Cek email unique (kecuali diri sendiri)
+    let email_exists = sqlx::query!(
+        "SELECT id FROM users WHERE email = ? AND id != ?",
+        payload.email,
+        user_exist.id
+    )
+    .fetch_optional(&db)
+    .await;
+
+    if let Ok(Some(_)) = email_exists {
+        return (
+            StatusCode::CONFLICT,
+            Json(ApiResponse::error(
+                "Email sudah terdaftar",
+            )),
+        );
+    }
+
+    // Update user
+    let result = match &payload.password {
+        Some(password) if !password.is_empty() => {
+            
+            // Hash password Dengan Bcrypt
+            let hashed = match hash(password, 10) {
+                Ok(h) => h,
+                Err(_) => {
+                    return (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        Json(ApiResponse::error(
+                            "Gagal mengenkripsi password",
+                        )),
+                    );
+                }
+            };
+
+            // Update user dengan password
+            sqlx::query!(
+                "UPDATE users SET name = ?, email = ?, password = ? WHERE id = ?",
+                payload.name,
+                payload.email,
+                hashed,
+                id
+            )
+            .execute(&db)
+            .await
+        }
+        _ => {
+
+            // Update user tanpa password
+            sqlx::query!(
+                "UPDATE users SET name = ?, email = ? WHERE id = ?",
+                payload.name,
+                payload.email,
+                id
+            )
+            .execute(&db)
+            .await
+        }
+    };
+
+    if let Err(_) = result {
+        return (
+
+            // kirim response 500 Internal Server Error
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ApiResponse::error(
+                "Gagal memperbarui data user",
+            )),
+        );
+    }
+
+    // Ambil data terbaru
+    let user = sqlx::query!(
+        r#"
+        SELECT id, name, email, created_at, updated_at
+        FROM users
+        WHERE id = ?
+        "#,
+        id
+    )
+    .fetch_one(&db)
+    .await
+    .unwrap();
+
+    let response = UserResponse {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        created_at: user.created_at,
+        updated_at: user.updated_at,
+    };
+
+    (
+        // kirim response 200 OK
+        StatusCode::OK,
+        Json(ApiResponse::success(
+            "User berhasil diperbarui",
+            json!(response),
+        )),
+    )
+}
+
