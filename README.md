@@ -99,15 +99,43 @@ Lihat [Dokumentasi/ALUR.md](Dokumentasi/ALUR.md).
 ## Catatan Endpoint
 Endpoint yang sudah tersedia:
 
-- `POST /api/register`
-- `POST /api/login`
-- `GET /api/users` (butuh header `Authorization: Bearer <token>`)
+### Public Endpoints (Tidak perlu token)
+- `POST /api/register` - Registrasi user baru
+- `POST /api/login` - Login dan dapatkan token
 
-Middleware auth sudah dipasang pada route user.
+### Protected Endpoints (Butuh header `Authorization: Bearer <token>`)
+- `GET /api/users` - Mengambil list semua user
+- `POST /api/users` - Menambahkan user baru (untuk admin/user yang sudah login)
 
-Contoh request list user:
+Middleware auth sudah dipasang pada semua route user.
+
+### Contoh Penggunaan
+
+**Register (Public)**
+```bash
+curl -X POST http://127.0.0.1:3001/api/register \
+  -H "Content-Type: application/json" \
+  -d '{"name":"John Doe","email":"john@example.com","password":"password123"}'
 ```
+
+**Login (Public)**
+```bash
+curl -X POST http://127.0.0.1:3001/api/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"john@example.com","password":"password123"}'
+```
+
+**List Users (Protected)**
+```bash
 curl -H "Authorization: Bearer <token>" http://127.0.0.1:3001/api/users
+```
+
+**Create User (Protected)**
+```bash
+curl -X POST http://127.0.0.1:3001/api/users \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Jane Doe","email":"jane@example.com","password":"password123"}'
 ```
 
 

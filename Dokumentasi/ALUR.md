@@ -65,13 +65,20 @@ Daftar modul yang sudah tersedia:
 		- Menggunakan `JWT_SECRET` dari environment (default: "secret").
 	- `response` untuk format `ApiResponse` (status, message, data).
 - **Handlers**
-	- `register` untuk membuat user baru (hash password dengan bcrypt).
-	- `login` untuk autentikasi dan generate JWT token.
-	- `index` untuk mengambil list semua user (descending by id).
+	- `register_handler.rs`
+		- `register` untuk membuat user baru melalui endpoint public (hash password dengan bcrypt).
+	- `login_handler.rs`
+		- `login` untuk autentikasi dan generate JWT token.
+	- `user_handler.rs`
+		- `index` untuk mengambil list semua user (descending by id).
+		- `store` untuk menambahkan user baru (hanya untuk user yang sudah login).
 - **Routes**
-	- `/api/register` (POST, public).
-	- `/api/login` (POST, public).
-	- `/api/users` (GET, protected dengan auth middleware).
+	- Auth Routes (public):
+		- `POST /api/register` - Registrasi user baru.
+		- `POST /api/login` - Login dan dapatkan token.
+	- User Routes (protected dengan auth middleware):
+		- `GET /api/users` - List semua user.
+		- `POST /api/users` - Tambah user baru.
 
 ## Migrasi Database (SQLx)
 Migrasi untuk tabel `users` sudah dibuat dan dijalankan.
@@ -154,10 +161,13 @@ Berikut urutan kerja yang dilakukan dari awal proyek sampai kondisi sekarang:
 	- Tambah `src/schemas/login_schema.rs` dan update `src/schemas/mod.rs`.
 22. **Tambah handler dan route auth**
 	- Tambah `src/handlers/register_handler.rs`, `src/handlers/login_handler.rs`.
-	- Tambah `src/routes/auth_routes.rs` dan merge ke `Router`.
+	- Tambah `src/routes/auth_routes.rs` dengan endpoint register dan login.
+	- Merge `auth_routes()` ke `Router` di `main.rs`.
 23. **Tambah handler dan route user**
-	- Tambah `src/handlers/user_handler.rs`.
-	- Tambah `src/routes/user_routes.rs` dan pasang middleware auth.
+	- Tambah `src/handlers/user_handler.rs` dengan handler `index` dan `store`.
+	- Tambah `src/routes/user_routes.rs` dengan endpoint GET dan POST `/api/users`.
+	- Pasang middleware auth pada semua route user.
+	- Merge `user_routes()` ke `Router` di `main.rs`.
 
 ## Alur Register
 1. Client mengirim `POST /api/register` dengan body JSON:
@@ -244,6 +254,48 @@ Berikut urutan kerja yang dilakukan dari awal proyek sampai kondisi sekarang:
      ]
    }
    ```
+
+## Alur Tambah User (Protected)
+1. Client mengirim `POST /api/users` dengan header:
+   ```
+   Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGc...
+   ```
+   Dan body JSON:
+   ```json
+   {
+     "name": "Jane Doe",
+     "email": "jane@example.com",
+     "password": "password123"
+   }
+   ```
+2. Middleware `auth` memverifikasi token (sama seperti alur list users).
+3. Payload divalidasi menggunakan `validator`:
+   - Nama minimal 3 karakter.
+   - Email harus format valid.
+   - Password minimal 6 karakter.
+4. Jika validasi gagal, kirim response `422 Unprocessable Entity` dengan detail error per field.
+5. Password di-hash dengan `bcrypt` (cost: 10).
+6. Data user disimpan ke tabel `users`.
+7. Ambil kembali data user berdasarkan `last_insert_id` dan kirim response `201 Created`:
+   ```json
+   {
+     "status": true,
+     "message": "User berhasil ditambahkan",
+     "data": {
+       "id": 3,
+       "name": "Jane Doe",
+       "email": "jane@example.com",
+       "created_at": "2026-02-21T11:00:00Z",
+       "updated_at": "2026-02-21T11:00:00Z"
+     }
+   }
+   ```
+8. Jika email sudah ada (duplicate entry), kirim `409 Conflict`.
+
+**Perbedaan dengan `/api/register`:**
+- `/api/register` adalah endpoint public untuk self-registration.
+- `/api/users` (POST) adalah endpoint protected untuk menambahkan user (fungsi admin).
+- Keduanya menggunakan validasi dan hashing password yang sama.
 
 ## Format Response Error Validasi
 Ketika validasi gagal (status 422), response akan berisi detail error per field:
