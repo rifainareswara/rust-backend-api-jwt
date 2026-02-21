@@ -22,16 +22,26 @@ backend-api-jwt/
 		config/
 			mod.rs
 			database.rs
+		handlers/
+			mod.rs
+			register_handler.rs
+			login_handler.rs
+			user_handler.rs
 		middlewares/
 			mod.rs
 			auth_middleware.rs
 		models/
 			mod.rs
 			user.rs
+		routes/
+			mod.rs
+			auth_routes.rs
+			user_routes.rs
 		schemas/
 			mod.rs
 			register_schema.rs
 			login_schema.rs
+			user_schema.rs
 		utils/
 			mod.rs
 			jwt.rs

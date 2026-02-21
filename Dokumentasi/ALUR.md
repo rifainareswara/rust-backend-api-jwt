@@ -22,17 +22,17 @@ Urutan ini menjaga dependency antar modul agar tidak saling bertabrakan:
 7. **Model data**
 	- `src/models/user.rs` dan `src/models/mod.rs`.
 8. **Schema request/response**
-	- `src/schemas/register_schema.rs` dan `src/schemas/mod.rs`.
+	- `src/schemas/register_schema.rs`, `src/schemas/login_schema.rs`, `src/schemas/user_schema.rs`, dan `src/schemas/mod.rs`.
 9. **Utility**
 	- `src/utils/jwt.rs`, `src/utils/response.rs`, `src/utils/mod.rs`.
 10. **Middleware auth**
 	- `src/middlewares/auth_middleware.rs` dan `src/middlewares/mod.rs`.
-11. **Schema login**
-	- `src/schemas/login_schema.rs` dan `src/schemas/mod.rs`.
-12. **Handler dan route auth**
-	- Buat endpoint register/login dan wire ke `Router`.
-13. **Handler dan route user**
-	- Buat endpoint list user dan pasang middleware auth.
+11. **Handler auth dan user**
+	- `src/handlers/register_handler.rs`, `src/handlers/login_handler.rs`, `src/handlers/user_handler.rs`, dan `src/handlers/mod.rs`.
+12. **Route auth dan user**
+	- `src/routes/auth_routes.rs`, `src/routes/user_routes.rs`, dan `src/routes/mod.rs`.
+13. **Wire route ke Router**
+	- Merge semua route di `src/main.rs`.
 
 ## Alur Aplikasi Saat Ini
 1. Memuat variabel environment dari `.env` menggunakan `dotenvy`.
@@ -50,6 +50,7 @@ Daftar modul yang sudah tersedia:
 	- `LoginRequest` dengan validasi email dan password.
 	- `RegisterResponse` untuk response data user.
 	- `LoginResponse` berisi data user dan token.
+	- `UserResponse` untuk format data user pada response list user.
 - **Middleware Auth**
 	- `auth` membaca token dari header `Authorization: Bearer <token>`.
 	- Menggunakan `verify_token()` dan menyimpan `claims` di `extensions`.
@@ -57,12 +58,12 @@ Daftar modul yang sudah tersedia:
 	- `jwt` untuk `generate_token()` dan `verify_token()`.
 	- `response` untuk format `ApiResponse`.
 - **Handlers**
-	- `register` untuk membuat user.
-	- `login` untuk autentikasi dan token.
-	- `index` untuk list user.
+	- `register_handler` untuk membuat user.
+	- `login_handler` untuk autentikasi dan token.
+	- `user_handler` untuk list user.
 - **Routes**
-	- `/api/register` dan `/api/login` (public).
-	- `/api/users` (protected, butuh token).
+	- `auth_routes`: `/api/register` dan `/api/login` (public).
+	- `user_routes`: `/api/users` (protected, butuh token).
 
 ## Migrasi Database (SQLx)
 Migrasi untuk tabel `users` sudah dibuat dan dijalankan.
@@ -141,14 +142,13 @@ Berikut urutan kerja yang dilakukan dari awal proyek sampai kondisi sekarang:
 	- Tambah `src/utils/jwt.rs`, `src/utils/response.rs`, dan `src/utils/mod.rs`.
 20. **Tambah middleware auth**
 	- Tambah `src/middlewares/auth_middleware.rs` dan `src/middlewares/mod.rs`.
-21. **Tambah schema login**
-	- Tambah `src/schemas/login_schema.rs` dan update `src/schemas/mod.rs`.
-22. **Tambah handler dan route auth**
-	- Tambah `src/handlers/register_handler.rs`, `src/handlers/login_handler.rs`.
-	- Tambah `src/routes/auth_routes.rs` dan merge ke `Router`.
-23. **Tambah handler dan route user**
-	- Tambah `src/handlers/user_handler.rs`.
-	- Tambah `src/routes/user_routes.rs` dan pasang middleware auth.
+21. **Tambah schema login dan user**
+	- Tambah `src/schemas/login_schema.rs`, `src/schemas/user_schema.rs`, dan update `src/schemas/mod.rs`.
+22. **Tambah handler auth dan user**
+	- Tambah `src/handlers/register_handler.rs`, `src/handlers/login_handler.rs`, `src/handlers/user_handler.rs`, dan `src/handlers/mod.rs`.
+23. **Tambah route auth dan user**
+	- Tambah `src/routes/auth_routes.rs`, `src/routes/user_routes.rs`, dan `src/routes/mod.rs`.
+	- Merge semua route ke `Router` di `src/main.rs`.
 
 ## Alur Register
 1. Client mengirim `POST /api/register`.
