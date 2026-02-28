@@ -66,6 +66,15 @@ Urutan ini menjaga dependency antar modul agar tidak saling bertabrakan:
 ## Komponen yang Sudah Disiapkan
 Daftar modul yang sudah tersedia:
 
+- **Container Files**
+  - `Dockerfile`
+    - Multi-stage build untuk binary Rust.
+    - Saat ini menginstal library PostgreSQL (`libpq-dev`) dan expose port `8080`.
+  - `docker-compose.yml`
+    - Menjalankan service `app` + `db`.
+    - Service `db` saat ini menggunakan PostgreSQL (`postgres:13`).
+    - Mapping port app saat ini `8080:8080`.
+
 - **Schemas**
 	- `register_schema.rs`
 		- `RegisterRequest` dengan validasi panjang nama (min 3 karakter), email, dan password (min 6 karakter).
@@ -383,6 +392,11 @@ Untuk error lainnya (401, 409, 500), response menggunakan format:
 - `DATABASE_URL`: Connection string MySQL.
 - `JWT_SECRET`: Secret key untuk sign/verify JWT. Jika tidak diset, default ke `"secret"`.
   - **PENTING**: Ganti dengan secret yang kuat pada production.
+
+## Catatan Docker (Status Saat Ini)
+- Konfigurasi runtime aplikasi saat ini memakai MySQL (`sqlx` mysql) dan default port `3001`.
+- Konfigurasi container (`Dockerfile` dan `docker-compose.yml`) saat ini masih memakai PostgreSQL dan port `8080`.
+- Sebelum dipakai untuk alur development utama, sinkronkan konfigurasi Docker agar sama dengan runtime aplikasi.
 
 ## File .gitignore
 File yang diabaikan oleh git:

@@ -16,6 +16,7 @@ Backend API dengan autentikasi JWT menggunakan Rust, Axum web framework, dan MyS
 - [Menjalankan Aplikasi](#menjalankan-aplikasi)
 - [Dependensi Utama](#dependensi-utama)
 - [Catatan Endpoint](#catatan-endpoint)
+- [Docker](#docker)
 - [Troubleshooting](#troubleshooting)
 - [Lisensi](#lisensi)
 - [Kontribusi](#kontribusi)
@@ -90,6 +91,8 @@ backend-api-jwt/
 	Cargo.toml
 	README.md
 	.env.example
+  Dockerfile
+  docker-compose.yml
 	src/
 		main.rs
 		config/
@@ -233,6 +236,29 @@ Endpoint yang sudah tersedia:
 - `DELETE /api/users/{id}` - Menghapus user berdasarkan ID
 
 Middleware auth sudah dipasang pada semua route user.
+
+## Docker
+
+Project ini sudah memiliki file container di root:
+- `Dockerfile`
+- `docker-compose.yml`
+
+### Cara menjalankan dengan Docker Compose
+```bash
+docker compose up --build
+```
+
+### Status konfigurasi Docker saat ini
+- Service `app` di `docker-compose.yml` publish port `8080:8080`.
+- Service database di `docker-compose.yml` menggunakan **PostgreSQL** (`postgres:13`).
+- `Dockerfile` saat ini juga menginstal dependency PostgreSQL (`libpq-dev`) dan expose port `8080`.
+
+### Catatan penting sinkronisasi
+Aplikasi Rust saat ini (kode runtime) menggunakan:
+- `DATABASE_URL` untuk **MySQL** (via `sqlx` feature `mysql`)
+- Port default `APP_PORT=3001`
+
+Artinya konfigurasi Docker saat ini belum sepenuhnya sinkron dengan konfigurasi runtime aplikasi. Jika akan dipakai untuk development aktif, sesuaikan `Dockerfile`/`docker-compose.yml` agar menggunakan MySQL dan port aplikasi yang sama.
 
 ### Contoh Penggunaan
 
