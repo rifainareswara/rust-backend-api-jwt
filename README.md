@@ -220,6 +220,9 @@ Endpoint yang sudah tersedia:
 ### Protected Endpoints (Butuh header `Authorization: Bearer <token>`)
 - `GET /api/users` - Mengambil list semua user
 - `POST /api/users` - Menambahkan user baru (untuk admin/user yang sudah login)
+- `GET /api/users/{id}` - Mengambil detail user berdasarkan ID
+- `PUT /api/users/{id}` - Memperbarui data user berdasarkan ID
+- `DELETE /api/users/{id}` - Menghapus user berdasarkan ID
 
 Middleware auth sudah dipasang pada semua route user.
 
@@ -312,6 +315,64 @@ Response:
     "created_at": "2026-02-21T11:00:00Z",
     "updated_at": "2026-02-21T11:00:00Z"
   }
+}
+```
+
+**Detail User (Protected)**
+```bash
+curl -H "Authorization: Bearer <token>" http://127.0.0.1:3001/api/users/2
+```
+
+Response:
+```json
+{
+  "status": true,
+  "message": "Detail user",
+  "data": {
+    "id": 2,
+    "name": "Jane Doe",
+    "email": "jane@example.com",
+    "created_at": "2026-02-21T11:00:00Z",
+    "updated_at": "2026-02-21T11:00:00Z"
+  }
+}
+```
+
+**Update User (Protected)**
+```bash
+curl -X PUT http://127.0.0.1:3001/api/users/2 \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Jane Updated","email":"jane.updated@example.com","password":"newpassword123"}'
+```
+
+Response:
+```json
+{
+  "status": true,
+  "message": "User berhasil diperbarui",
+  "data": {
+    "id": 2,
+    "name": "Jane Updated",
+    "email": "jane.updated@example.com",
+    "created_at": "2026-02-21T11:00:00Z",
+    "updated_at": "2026-02-28T09:30:00Z"
+  }
+}
+```
+
+**Delete User (Protected)**
+```bash
+curl -X DELETE http://127.0.0.1:3001/api/users/2 \
+  -H "Authorization: Bearer <token>"
+```
+
+Response:
+```json
+{
+  "status": true,
+  "message": "User berhasil dihapus",
+  "data": null
 }
 ```
 

@@ -424,3 +424,67 @@ pub async fn update(
     )
 }
 
+pub async fn destroy(
+    Path(id): Path<i64>,
+    Extension(db): Extension<MySqlPool>,
+) -> (StatusCode, Json<ApiResponse<Value>>) {
+
+    // Cek user exist
+    let user = match sqlx::query!(
+        "SELECT id FROM users WHERE id = ?",
+        id
+    )
+    .fetch_one(&db)
+    .await
+    {
+        Ok(user) => user,
+        Err(sqlx::Error::RowNotFound) => {
+            return (
+                // kirim response 404 Not Found
+                StatusCode::NOT_FOUND,
+                Json(ApiResponse::error(
+                    "User tidak ditemukan",
+                )),
+            );
+        }
+        Err(e) => {
+            eprintln!("Database error: {}", e);
+            return (
+                // kirim response 500 Internal Server Error
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ApiResponse::error(
+                    "Terjadi kesalahan sistem",
+                )),
+            );
+        }
+    };
+
+    // Hapus user dari database
+    let result = sqlx::query!(
+        "DELETE FROM users WHERE id = ?",
+        user.id
+    )
+    .execute(&db)
+    .await;
+
+    match result {
+        Ok(_) => (
+            // kirim response 200 OK
+            StatusCode::OK,
+            Json(ApiResponse::success(
+                "User berhasil dihapus",
+                json!(null),
+            )),
+        ),
+        Err(e) => {
+            eprintln!("Database error: {}", e);
+            (
+                // kirim response 500 Internal Server Error
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ApiResponse::error(
+                    "Gagal menghapus user",
+                )),
+            )
+        }
+    }
+}

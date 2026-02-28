@@ -13,6 +13,9 @@ Dokumen ini menyimpan detail teknis agar README tetap ringkas.
 - [Alur Login](#alur-login)
 - [Alur List Users (Protected)](#alur-list-users-protected)
 - [Alur Tambah User (Protected)](#alur-tambah-user-protected)
+- [Alur Detail User (Protected)](#alur-detail-user-protected)
+- [Alur Update User (Protected)](#alur-update-user-protected)
+- [Alur Hapus User (Protected)](#alur-hapus-user-protected)
 - [Format Response](#format-response-error-validasi)
 - [Catatan Environment](#catatan-environment)
 - [Best Practices](#best-practices)
@@ -72,6 +75,7 @@ Daftar modul yang sudah tersedia:
 		- `LoginResponse` berisi data user dan token.
 	- `user_schema.rs`
 		- `UserStoreRequest` dengan validasi nama (min 3 karakter), email, dan password (min 6 karakter).
+    - `UserUpdateRequest` dengan validasi nama (min 3 karakter), email valid, dan password opsional.
 		- `UserResponse` untuk response data user (id, name, email, created_at, updated_at).
 - **Middleware Auth**
 	- `auth` membaca token dari header `Authorization: Bearer <token>`.
@@ -89,6 +93,9 @@ Daftar modul yang sudah tersedia:
 	- `user_handler.rs`
 		- `index` untuk mengambil list semua user (descending by id).
 		- `store` untuk menambahkan user baru (hanya untuk user yang sudah login).
+    - `show` untuk mengambil detail user berdasarkan id.
+    - `update` untuk memperbarui user berdasarkan id (opsional update password).
+    - `destroy` untuk menghapus user berdasarkan id.
 - **Routes**
 	- Auth Routes (public):
 		- `POST /api/register` - Registrasi user baru.
@@ -96,6 +103,9 @@ Daftar modul yang sudah tersedia:
 	- User Routes (protected dengan auth middleware):
 		- `GET /api/users` - List semua user.
 		- `POST /api/users` - Tambah user baru.
+    - `GET /api/users/{id}` - Detail user berdasarkan id.
+    - `PUT /api/users/{id}` - Perbarui user berdasarkan id.
+    - `DELETE /api/users/{id}` - Hapus user berdasarkan id.
 
 ## Migrasi Database (SQLx)
 Migrasi untuk tabel `users` sudah dibuat dan dijalankan.
@@ -314,6 +324,34 @@ Berikut urutan kerja yang dilakukan dari awal proyek sampai kondisi sekarang:
 - `/api/register` adalah endpoint public untuk self-registration.
 - `/api/users` (POST) adalah endpoint protected untuk menambahkan user (fungsi admin).
 - Keduanya menggunakan validasi dan hashing password yang sama.
+
+## Alur Detail User (Protected)
+1. Client mengirim `GET /api/users/{id}` dengan header `Authorization: Bearer <token>`.
+2. Middleware `auth` memverifikasi token.
+3. Handler `show` mencari user berdasarkan `id`.
+4. Jika user ditemukan, kirim `200 OK` dengan message `Detail user`.
+5. Jika user tidak ditemukan, kirim `404 Not Found`.
+
+## Alur Update User (Protected)
+1. Client mengirim `PUT /api/users/{id}` dengan header `Authorization: Bearer <token>`.
+2. Body divalidasi:
+  - `name` minimal 3 karakter.
+  - `email` harus valid.
+  - `password` opsional, jika diisi minimal 6 karakter.
+3. Handler `update` memeriksa apakah user ada.
+4. Handler mengecek email unik (tidak boleh dipakai user lain).
+5. Jika `password` diisi, password di-hash dengan bcrypt sebelum update.
+6. Jika berhasil, kirim `200 OK` dengan message `User berhasil diperbarui`.
+7. Jika user tidak ditemukan, kirim `404 Not Found`.
+8. Jika email duplikat, kirim `409 Conflict`.
+
+## Alur Hapus User (Protected)
+1. Client mengirim `DELETE /api/users/{id}` dengan header `Authorization: Bearer <token>`.
+2. Middleware `auth` memverifikasi token.
+3. Handler `destroy` memeriksa apakah user ada.
+4. Jika user ada, data dihapus dari database.
+5. Jika berhasil, kirim `200 OK` dengan message `User berhasil dihapus` dan data `null`.
+6. Jika user tidak ditemukan, kirim `404 Not Found`.
 
 ## Format Response Error Validasi
 Ketika validasi gagal (status 422), response akan berisi detail error per field:
