@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  app_demo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: backend_api_jwt_demo
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env.demo
+    depends_on:
+      db_demo:
+        condition: service_healthy
+
+  db_demo:
+    image: mysql:8.0
+    container_name: db_backend_api_jwt_demo
+    environment:
+      MYSQL_DATABASE: demo_db
+      MYSQL_USER: demo_user
+      MYSQL_PASSWORD: demo_password
+      MYSQL_ROOT_PASSWORD: root_demo_password
+    ports:
+      - "33060:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - db_demo_data:/var/lib/mysql
+
+volumes:
+  db_demo_data:
