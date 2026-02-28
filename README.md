@@ -210,6 +210,14 @@ Lihat [Dokumentasi/ALUR.md](Dokumentasi/ALUR.md).
 - `tower-http`: middleware (CORS)
 - `validator`: validasi request
 
+## Konfigurasi CORS
+Saat ini aplikasi menggunakan `CorsLayer` dari `tower-http` dengan konfigurasi default berikut:
+- Mengizinkan semua origin (`allow_origin(Any)`)
+- Mengizinkan semua HTTP method (`allow_methods(Any)`)
+- Mengizinkan semua header (`allow_headers(Any)`)
+
+Konfigurasi ini cocok untuk development. Untuk production, sebaiknya batasi origin, method, dan header sesuai kebutuhan frontend Anda.
+
 ## Catatan Endpoint
 Endpoint yang sudah tersedia:
 

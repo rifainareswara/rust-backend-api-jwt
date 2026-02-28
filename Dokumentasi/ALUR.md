@@ -52,15 +52,16 @@ Urutan ini menjaga dependency antar modul agar tidak saling bertabrakan:
 12. **Handler dan route auth**
 	- Buat endpoint register/login dan wire ke `Router`.
 13. **Handler dan route user**
-	- Buat endpoint list user dan pasang middleware auth.
+  - Buat endpoint CRUD user (`list`, `create`, `detail`, `update`, `delete`) dan pasang middleware auth.
 
 ## Alur Aplikasi Saat Ini
 1. Memuat variabel environment dari `.env` menggunakan `dotenvy`.
 2. Membuat koneksi MySQL melalui `config::database::connect()`.
 3. Menyiapkan router Axum dan merge route auth dan user.
 4. Menyimpan koneksi DB di layer `Extension`.
-5. Membaca `APP_PORT` dari env (default `3001` jika tidak diset).
-6. Menjalankan server HTTP pada `127.0.0.1:<port>`.
+5. Menambahkan `CorsLayer` dari `tower-http` (default saat ini: allow all origins/methods/headers).
+6. Membaca `APP_PORT` dari env (default `3001` jika tidak diset).
+7. Menjalankan server HTTP pada `127.0.0.1:<port>`.
 
 ## Komponen yang Sudah Disiapkan
 Daftar modul yang sudah tersedia:
