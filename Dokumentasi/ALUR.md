@@ -47,10 +47,11 @@ Daftar modul yang sudah tersedia:
 
 - **Schemas**
 	- `RegisterRequest` dengan validasi panjang nama, email, dan password.
+	- `RegisterResponse` untuk response data user (id, name, email, created_at, updated_at).
 	- `LoginRequest` dengan validasi email dan password.
-	- `RegisterResponse` untuk response data user.
-	- `LoginResponse` berisi data user dan token.
-	- `UserResponse` untuk format data user pada response list user.
+	- `LoginResponse` berisi data user (id, name, email) dan token.
+	- `UserStoreRequest` dengan validasi nama, email, dan password (di `user_schema.rs`).
+	- `UserResponse` untuk format data user dengan timestamp (di `user_schema.rs`).
 - **Middleware Auth**
 	- `auth` membaca token dari header `Authorization: Bearer <token>`.
 	- Menggunakan `verify_token()` dan menyimpan `claims` di `extensions`.
@@ -94,6 +95,8 @@ Field yang tersedia:
 - `email`
 - `created_at`
 - `updated_at`
+
+Model `User` digunakan langsung oleh `user_handler` untuk serialisasi response list user.
 
 ## Alur Pengerjaan Dari Awal Sampai Saat Ini
 Berikut urutan kerja yang dilakukan dari awal proyek sampai kondisi sekarang:
